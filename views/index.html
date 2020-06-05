@@ -1,0 +1,107 @@
+<html>
+
+<head>
+    <title>Centrifugo quick start</title>
+</head>
+
+<body>
+    <div id="counter">-</div>
+    <button onclick="pub()">publish</button><br>
+    <button onclick="presence()">presence</button><br>
+    <button onclick="histori()">history</button><br>
+    <button onclick="unsubscribe()">unsubscribe</button><br>
+    <button onclick="removeAllListeners()">removeAllListeners</button><br>
+    <script src="https://cdn.rawgit.com/centrifugal/centrifuge-js/2.6.0/dist/centrifuge.min.js"></script>
+    <script type="text/javascript">
+        let callbacks = {
+            "publish": function (message) {
+                // See below description of message format
+                console.log('publish');
+                console.log(message);
+            },
+            "join": function (message) {
+                // See below description of join message format
+                console.log('join');
+                console.log(message);
+            },
+            "leave": function (message) {
+                // See below description of leave message format
+                console.log('leave');
+                console.log(message);
+            },
+            "subscribe": function (context) {
+                // See below description of subscribe callback context format
+                console.log('subscribe');
+                console.log(context);
+            },
+            "error": function (errContext) {
+                // See below description of subscribe error callback context format
+                console.log('error');
+                console.log(err);
+            },
+            "unsubscribe": function (context) {
+                // See below description of unsubscribe event callback context format
+                console.log('unsubscribe');
+                console.log(context);
+            }
+        }
+        const centrifuge = new Centrifuge("ws://centrifugo2.herokuapp.com/connection/websocket");
+
+
+        // generate jwt token for connection from [https://www.jsonwebtoken.io/], here sub is required; refer to https://centrifugal.github.io/centrifugo/server/authentication/
+        centrifuge.setToken("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTkxMzY5MzQ4LCJleHAiOjE1OTEzNzMwMDMsImp0aSI6ImE2MDM1MGViLTNiMmQtNDlhYy04M2E4LWY2ZmZlY2IyMjJkOSJ9.99tCexQZ4vNR1QIZRcmjDPkDz1W9MA07JAUu1uJQqvs");
+
+
+        centrifuge.on('connect', function (ctx) {
+            console.log("connected", ctx);
+            /*
+            client – client ID Centrifugo gave to this connection (string)
+            transport – name of transport used to establish connection with server (string)
+            latency – latency in milliseconds (int). This measures time passed between sending connect client protocol command and receiving connect response.
+            */
+        });
+
+        centrifuge.on('disconnect', function (ctx) {
+            console.log("disconnected", ctx);
+            /*             reason – the reason of client's disconnect (string)
+                        reconnect – flag indicating if client will reconnect or not (boolean) */
+        });
+        centrifuge.connect();
+        let subscription = centrifuge.subscribe("channel", callbacks);
+        function pub() {
+            centrifuge.publish("channel", { "input": "hello" }).then(function (res) {
+                console.log('successfully published');
+            }, function (err) {
+                console.log('publish error', err);
+            });
+        }
+
+        function presence() {
+            subscription.presence().then(function (message) {
+                console.log(message)
+            }, function (err) {
+                console.log(err)
+            });
+        }
+        function histori() {
+            subscription.history().then(function (message) {
+                console.log(message)
+            }, function (err) {
+                console.log(err)
+            });
+        }
+        function unsubscribe() {
+            subscription.unsubscribe("channel");
+        }
+        function removeAllListeners(params) {
+            subscription.removeAllListeners();
+        }
+        // function privateChannelSubscription() {
+        centrifuge.subscribe('$private', function (message) {
+            console.log(message)
+        });
+        // }
+    </script>
+</body>
+
+</html>
